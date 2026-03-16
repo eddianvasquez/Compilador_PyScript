@@ -1,61 +1,86 @@
 import ply.lex as lex
 
-# Requerimiento 5: Palabras reservadas
-# Aquí definimos las palabras clave de "PyScript"
+# 1. Palabras reservadas reales de Python/PyScript
 reserved = {
-    'si': 'IF',          # Para cumplir con el requerimiento 7: Selectiva
-    'sino': 'ELSE',
-    'imprimir': 'PRINT',
-    'mientras': 'WHILE'
+    'if': 'IF',
+    'else': 'ELSE',
+    'print': 'PRINT',
+    'while': 'WHILE',
+    'for': 'FOR',
+    'def': 'DEF',
+    'return': 'RETURN',
+    'True': 'TRUE',
+    'False': 'FALSE',
+    'and': 'AND',
+    'or': 'OR'
 }
 
-# Lista de todos los tokens (símbolos que el compilador entiende)
+# 2. Lista completa de tokens que tu compañero usará en el Parser
 tokens = [
-    'ID', 'NUMBER', 'PLUS', 'MINUS', 'LPAREN', 'RPAREN', 'EQUALS'
+    # Etiquetas web
+    'PYSCRIPT_OPEN', 'PYSCRIPT_CLOSE',
+    
+    # Datos y variables
+    'ID', 'NUMBER', 'STRING',
+    
+    # Matemáticas
+    'PLUS', 'MINUS', 'TIMES', 'DIVIDE',
+    
+    # Agrupación y asignación
+    'LPAREN', 'RPAREN', 'EQUALS', 'COLON',
+    
+    # Comparaciones lógicas
+    'EQEQ', 'GT', 'LT', 'NEQ'
 ] + list(reserved.values())
 
-# Reglas simples para símbolos matemáticos y de agrupación
+# 3. Reglas simples (Símbolos matemáticos y operadores)
 t_PLUS    = r'\+'
 t_MINUS   = r'-'
+t_TIMES   = r'\*'
+t_DIVIDE  = r'/'
 t_LPAREN  = r'\('
 t_RPAREN  = r'\)'
 t_EQUALS  = r'='
+t_COLON   = r':'
 
-# Caracteres a ignorar (espacios y tabulaciones)
-t_ignore  = ' \t'
+t_EQEQ    = r'=='
+t_GT      = r'>'
+t_LT      = r'<'
+t_NEQ     = r'!='
 
-# Regla para detectar variables (ID) o palabras reservadas
-def t_ID(t):
-    r'[a-zA-Z_][a-zA-Z_0-9]*'
-    t.type = reserved.get(t.value, 'ID')    # Revisa si la palabra está en las reservadas
+# 4. Reglas para detectar las etiquetas de PyScript
+def t_PYSCRIPT_OPEN(t):
+    r'<py-script>'
     return t
 
-# Regla para detectar números
+def t_PYSCRIPT_CLOSE(t):
+    r'</py-script>'
+    return t
+
+# 5. Regla para detectar texto entre comillas (strings)
+def t_STRING(t):
+    r'\"([^\\\n]|(\\.))*?\"|\'([^\\\n]|(\\.))*?\''
+    return t
+
+# 6. Regla para detectar variables (ID) o palabras reservadas
+def t_ID(t):
+    r'[a-zA-Z_][a-zA-Z_0-9]*'
+    t.type = reserved.get(t.value, 'ID')  # Revisa si la palabra está en las reservadas
+    return t
+
+# 7. Regla para detectar números (enteros)
 def t_NUMBER(t):
     r'\d+'
     t.value = int(t.value)
     return t
 
-# Manejo de errores si el usuario escribe algo raro
+# 8. Caracteres a ignorar (espacios, tabulaciones y saltos de línea)
+t_ignore  = ' \t\n\r'
+
+# 9. Manejo de errores si escriben símbolos raros
 def t_error(t):
-    print(f"Error léxico: Carácter no válido '{t.value[0]}'")
+    print(f"Error léxico: Símbolo no reconocido '{t.value[0]}' en la línea {t.lineno}")
     t.lexer.skip(1)
 
-# Construir el lexer
+# Construir el lexer (El motor que exportamos a app.py)
 lexer = lex.lex()
-
-# --- Modo Interactivo (Requerimiento 6) ---
-if __name__ == '__main__':
-    print("Simulador PyScript - Analizador Léxico")
-    print("Escribe 'salir' para terminar.")
-    while True:
-        try:
-            texto = input('PyScript > ')
-        except EOFError:
-            break
-        if texto.lower() == 'salir':
-            break
-        
-        lexer.input(texto)
-        for tok in lexer:
-            print(tok)
