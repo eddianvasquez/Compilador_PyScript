@@ -74,8 +74,10 @@ def t_NUMBER(t):
     t.value = int(t.value)
     return t
 
-# 8. Caracteres a ignorar (espacios, tabulaciones y saltos de línea)
-t_ignore  = ' \t\n\r'
+# NUEVO: Regla para contar los saltos de línea
+def t_newline(t):
+    r'\n+'
+    t.lexer.lineno += len(t.value)
 
 # 9. Manejo de errores si escriben símbolos raros
 def t_error(t):
