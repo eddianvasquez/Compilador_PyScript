@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, jsonify
-import lexer  # <-- ¡Aquí conectamos tu analizador léxico!
+import parser  # <-- ¡Aquí conectamos tu nuevo analizador sintáctico/semántico!
 
 app = Flask(__name__)
 
@@ -12,22 +12,20 @@ def compilar():
     datos = request.json
     codigo_usuario = datos.get('codigo', '')
     
-    # 1. Le metemos el texto de la página web a tu analizador léxico
-    lexer.lexer.input(codigo_usuario)
+    # Ejecutamos el parser (que usa automáticamente el lexer por detrás)
+    salida_parser = parser.compilar_codigo(codigo_usuario)
     
-    # 2. Creamos un texto para ir guardando los resultados
-    resultado_consola = "--- RESULTADO DEL ANÁLISIS LÉXICO ---\n\n"
+    # Preparamos el texto a devolver a la consola web
+    resultado_consola = "--- RESULTADO DE EJECUCIÓN ---\n\n"
     
-    # 3. Recorremos cada token que tu lexer haya encontrado y lo formateamos
-    hay_tokens = False
-    for tok in lexer.lexer:
-        hay_tokens = True
-        resultado_consola += f"➤ Token: {tok.type:<15} | Valor: {tok.value}\n"
+    if salida_parser:
+        resultado_consola += salida_parser
+    else:
+        # Si el usuario no usó "print" pero declaró variables, 
+        # mostramos la memoria interna para comprobar que el Análisis Semántico funcionó.
+        resultado_consola += "Ejecución finalizada sin errores.\n"
+        resultado_consola += f"\n[Memoria interna de variables guardadas]:\n{parser.variables}"
         
-    if not hay_tokens:
-        resultado_consola += "No se detectó ningún código válido."
-        
-    # 4. Devolvemos el resultado a la consola negra de tu página web
     return jsonify({'resultado': resultado_consola})
 
 if __name__ == '__main__':
