@@ -1,8 +1,8 @@
 import ply.yacc as yacc
 from lexer import tokens
-import lexer # Importamos el lexer para reiniciar el contador de líneas
+import lexer 
 
-# --- MEMORIA Y ESTADO ---
+
 variables = {}
 salida_consola = []
 mensajes_error = []
@@ -13,7 +13,7 @@ precedence = (
     ('left', 'TIMES', 'DIVIDE'),
 )
 
-# --- REGLAS SINTÁCTICAS ---
+
 def p_program(p):
     '''program : statements'''
     p[0] = p[1]
@@ -40,7 +40,7 @@ def p_statement_print(p):
     if not hubo_error:
         salida_consola.append(str(p[3]))
 
-# --- REGLAS MATEMÁTICAS Y SEMÁNTICAS ---
+# --- REGLAS MATEMATICAS Y SEMANTICAS ---
 def p_expression_binop(p):
     '''expression : expression PLUS expression
                   | expression MINUS expression
@@ -53,7 +53,7 @@ def p_expression_binop(p):
     elif p[2] == '/':
         if p[3] == 0:
             hubo_error = True
-            linea = p.lineno(2) # Obtenemos la línea del signo de división
+            linea = p.lineno(2) 
             mensajes_error.append(f"Error Semantico: Division por cero en la linea {linea}")
             p[0] = 0
         else:
@@ -78,7 +78,7 @@ def p_expression_id(p):
         p[0] = variables[p[1]]
     except LookupError:
         hubo_error = True
-        linea = p.lineno(1) # Obtenemos la línea de la variable
+        linea = p.lineno(1) 
         mensajes_error.append(f"Error Semantico: Variable '{p[1]}' no definida en la linea {linea}")
         p[0] = 0
 
@@ -97,13 +97,11 @@ parser_engine = yacc.yacc()
 def compilar_codigo(codigo):
     global salida_consola, variables, hubo_error, mensajes_error
     
-    # Limpiamos la memoria
     salida_consola = []
     mensajes_error = []
     variables.clear()  
     hubo_error = False
     
-    # Reiniciamos el contador de líneas a 1 antes de cada ejecución
     lexer.lexer.lineno = 1 
     
     parser_engine.parse(codigo)
