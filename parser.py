@@ -2,17 +2,17 @@ import ply.yacc as yacc
 from lexer import tokens
 import lexer 
 
-
+# --- MEMORIA Y ESTADO ---
 variables = {}
 salida_consola = []
 mensajes_error = []
 hubo_error = False
+ejecutar_bloque = True  # NUEVO: Nuestro interruptor maestro para el IF
 
 precedence = (
     ('left', 'PLUS', 'MINUS'),
     ('left', 'TIMES', 'DIVIDE'),
 )
-
 
 def p_program(p):
     '''program : statements'''
@@ -32,13 +32,43 @@ def p_statement_pyscript(p):
 
 def p_statement_assign(p):
     '''statement : ID EQUALS expression'''
-    if not hubo_error:
+    # NUEVO LÍMITE: Solo guarda la variable si el interruptor está encendido
+    if not hubo_error and ejecutar_bloque:
         variables[p[1]] = p[3]
 
 def p_statement_print(p):
     '''statement : PRINT LPAREN expression RPAREN'''
-    if not hubo_error:
+    # NUEVO LÍMITE: Solo imprime en consola si el interruptor está encendido
+    if not hubo_error and ejecutar_bloque:
         salida_consola.append(str(p[3]))
+
+# --- NUEVO: ESTRUCTURA SELECTIVA (IF) ---
+def p_statement_if(p):
+    '''statement : IF expression COLON validacion_if statement'''
+    global ejecutar_bloque
+    # Al terminar la línea del IF, siempre volvemos a encender el motor
+    ejecutar_bloque = True 
+
+def p_validacion_if(p):
+    '''validacion_if : '''
+    global ejecutar_bloque
+    # Comprobamos el resultado de la expresión matemática (p[-2])
+    if p[-2] == True:
+        ejecutar_bloque = True  # Es verdad, dejamos que el código se ejecute
+    else:
+        ejecutar_bloque = False # Es falso, apagamos el motor para ignorar la instrucción
+
+# --- NUEVO: REGLAS RELACIONALES (LÓGICA) ---
+def p_expression_relational(p):
+    '''expression : expression GT expression
+                  | expression LT expression
+                  | expression EQEQ expression
+                  | expression NEQ expression'''
+    global hubo_error
+    if p[2] == '>': p[0] = p[1] > p[3]
+    elif p[2] == '<': p[0] = p[1] < p[3]
+    elif p[2] == '==': p[0] = p[1] == p[3]
+    elif p[2] == '!=': p[0] = p[1] != p[3]
 
 # --- REGLAS MATEMATICAS Y SEMANTICAS ---
 def p_expression_binop(p):
@@ -95,12 +125,13 @@ parser_engine = yacc.yacc()
 
 # --- FUNCIÓN PRINCIPAL EXPORTADA A APP.PY ---
 def compilar_codigo(codigo):
-    global salida_consola, variables, hubo_error, mensajes_error
+    global salida_consola, variables, hubo_error, mensajes_error, ejecutar_bloque
     
     salida_consola = []
     mensajes_error = []
     variables.clear()  
     hubo_error = False
+    ejecutar_bloque = True # NUEVO: Reiniciamos el interruptor en cada compilación
     
     lexer.lexer.lineno = 1 
     
