@@ -7,7 +7,7 @@ variables = {}
 salida_consola = []
 mensajes_error = []
 hubo_error = False
-ejecutar_bloque = True  # Interruptor maestro para el IF y el WHILE
+ejecutar_bloque = True  
 
 precedence = (
     ('left', 'PLUS', 'MINUS'),
@@ -35,13 +35,11 @@ def p_statement_assign(p):
     if not hubo_error and ejecutar_bloque:
         variables[p[1]] = p[3]
 
-# --- NUEVO: ASIGNACIONES CORTAS (Req. 5) ---
 def p_statement_assign_short(p):
     '''statement : ID PLUSEQUALS expression
                  | ID MINUSEQUALS expression'''
     global hubo_error
     if not hubo_error and ejecutar_bloque:
-        # Verificamos que la variable exista antes de sumarle o restarle
         try:
             if p[2] == '+=':
                 variables[p[1]] += p[3]
@@ -57,7 +55,6 @@ def p_statement_print(p):
     if not hubo_error and ejecutar_bloque:
         salida_consola.append(str(p[3]))
 
-# --- ESTRUCTURA SELECTIVA (IF) ---
 def p_statement_if(p):
     '''statement : IF expression COLON validacion_if statement'''
     global ejecutar_bloque
@@ -71,23 +68,32 @@ def p_validacion_if(p):
     else:
         ejecutar_bloque = False 
 
-# --- NUEVO: ESTRUCTURA REPETITIVA (WHILE) (Req. 3) ---
 def p_statement_while(p):
     '''statement : WHILE expression COLON validacion_while statement'''
     global ejecutar_bloque
-    # Al igual que en el IF, al terminar la regla devolvemos el interruptor a la normalidad
     ejecutar_bloque = True
 
 def p_validacion_while(p):
     '''validacion_while : '''
     global ejecutar_bloque
-    # Validamos si la condición del WHILE es verdadera
     if p[-2] == True:
         ejecutar_bloque = True
     else:
         ejecutar_bloque = False
 
-# --- REGLAS RELACIONALES (LÓGICA) ---
+def p_statement_def(p):
+    '''statement : DEF ID LPAREN RPAREN COLON bloqueo_def statement'''
+    global ejecutar_bloque, variables, salida_consola
+    if not hubo_error:
+        variables[p[2]] = "[Funcion guardada en memoria]"
+        salida_consola.append(f">> Info: Funcion '{p[2]}()' detectada sintacticamente.")
+    ejecutar_bloque = True
+
+def p_bloqueo_def(p):
+    '''bloqueo_def : '''
+    global ejecutar_bloque
+    ejecutar_bloque = False
+
 def p_expression_relational(p):
     '''expression : expression GT expression
                   | expression LT expression
@@ -99,14 +105,19 @@ def p_expression_relational(p):
     elif p[2] == '==': p[0] = p[1] == p[3]
     elif p[2] == '!=': p[0] = p[1] != p[3]
 
-# --- REGLAS MATEMATICAS Y SEMANTICAS ---
 def p_expression_binop(p):
     '''expression : expression PLUS expression
                   | expression MINUS expression
                   | expression TIMES expression
                   | expression DIVIDE expression'''
     global hubo_error
-    if p[2] == '+': p[0] = p[1] + p[3]
+    
+    if p[2] == '+': 
+        if isinstance(p[1], str) or isinstance(p[3], str):
+            p[0] = str(p[1]) + str(p[3])
+        else:
+            p[0] = p[1] + p[3]
+            
     elif p[2] == '-': p[0] = p[1] - p[3]
     elif p[2] == '*': p[0] = p[1] * p[3]
     elif p[2] == '/':
@@ -141,7 +152,6 @@ def p_expression_id(p):
         mensajes_error.append(f"Error Semantico: Variable '{p[1]}' no definida en la linea {linea}")
         p[0] = 0
 
-# --- MANEJO DE ERRORES SINTÁCTICOS ---
 def p_error(p):
     global hubo_error
     hubo_error = True
@@ -152,7 +162,6 @@ def p_error(p):
 
 parser_engine = yacc.yacc()
 
-# --- FUNCIÓN PRINCIPAL EXPORTADA A APP.PY ---
 def compilar_codigo(codigo):
     global salida_consola, variables, hubo_error, mensajes_error, ejecutar_bloque
     
