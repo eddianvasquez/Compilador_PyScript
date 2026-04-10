@@ -7,7 +7,7 @@ variables = {}
 salida_consola = []
 mensajes_error = []
 hubo_error = False
-ejecutar_bloque = True  # NUEVO: Nuestro interruptor maestro para el IF
+ejecutar_bloque = True  # Interruptor maestro para el IF y el WHILE
 
 precedence = (
     ('left', 'PLUS', 'MINUS'),
@@ -32,33 +32,62 @@ def p_statement_pyscript(p):
 
 def p_statement_assign(p):
     '''statement : ID EQUALS expression'''
-    # NUEVO LÍMITE: Solo guarda la variable si el interruptor está encendido
     if not hubo_error and ejecutar_bloque:
         variables[p[1]] = p[3]
 
+# --- NUEVO: ASIGNACIONES CORTAS (Req. 5) ---
+def p_statement_assign_short(p):
+    '''statement : ID PLUSEQUALS expression
+                 | ID MINUSEQUALS expression'''
+    global hubo_error
+    if not hubo_error and ejecutar_bloque:
+        # Verificamos que la variable exista antes de sumarle o restarle
+        try:
+            if p[2] == '+=':
+                variables[p[1]] += p[3]
+            elif p[2] == '-=':
+                variables[p[1]] -= p[3]
+        except KeyError:
+            hubo_error = True
+            linea = p.lineno(1)
+            mensajes_error.append(f"Error Semantico: La variable '{p[1]}' debe existir antes de usar {p[2]} en la linea {linea}")
+
 def p_statement_print(p):
     '''statement : PRINT LPAREN expression RPAREN'''
-    # NUEVO LÍMITE: Solo imprime en consola si el interruptor está encendido
     if not hubo_error and ejecutar_bloque:
         salida_consola.append(str(p[3]))
 
-# --- NUEVO: ESTRUCTURA SELECTIVA (IF) ---
+# --- ESTRUCTURA SELECTIVA (IF) ---
 def p_statement_if(p):
     '''statement : IF expression COLON validacion_if statement'''
     global ejecutar_bloque
-    # Al terminar la línea del IF, siempre volvemos a encender el motor
     ejecutar_bloque = True 
 
 def p_validacion_if(p):
     '''validacion_if : '''
     global ejecutar_bloque
-    # Comprobamos el resultado de la expresión matemática (p[-2])
     if p[-2] == True:
-        ejecutar_bloque = True  # Es verdad, dejamos que el código se ejecute
+        ejecutar_bloque = True  
     else:
-        ejecutar_bloque = False # Es falso, apagamos el motor para ignorar la instrucción
+        ejecutar_bloque = False 
 
-# --- NUEVO: REGLAS RELACIONALES (LÓGICA) ---
+# --- NUEVO: ESTRUCTURA REPETITIVA (WHILE) (Req. 3) ---
+def p_statement_while(p):
+    '''statement : WHILE expression COLON validacion_while statement'''
+    global ejecutar_bloque
+    # Al igual que en el IF, al terminar la regla devolvemos el interruptor a la normalidad
+    ejecutar_bloque = True
+
+def p_validacion_while(p):
+    '''validacion_while : '''
+    global ejecutar_bloque
+    # Validamos si la condición del WHILE es verdadera
+    if p[-2] == True:
+        ejecutar_bloque = True
+    else:
+        ejecutar_bloque = False
+
+# --- REGLAS RELACIONALES (LÓGICA) ---
 def p_expression_relational(p):
     '''expression : expression GT expression
                   | expression LT expression
@@ -131,7 +160,7 @@ def compilar_codigo(codigo):
     mensajes_error = []
     variables.clear()  
     hubo_error = False
-    ejecutar_bloque = True # NUEVO: Reiniciamos el interruptor en cada compilación
+    ejecutar_bloque = True 
     
     lexer.lexer.lineno = 1 
     

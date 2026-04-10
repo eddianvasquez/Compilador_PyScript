@@ -24,7 +24,9 @@ tokens = [
     
     'LPAREN', 'RPAREN', 'EQUALS', 'COLON',
     
-    'EQEQ', 'GT', 'LT', 'NEQ'
+    'EQEQ', 'GT', 'LT', 'NEQ',
+    
+    'PLUSEQUALS', 'MINUSEQUALS' # <-- AÑADIDO: Formas cortas
 ] + list(reserved.values())
 
 # 3. Reglas simples (Simbolos matematicos y operadores)
@@ -41,6 +43,9 @@ t_EQEQ    = r'=='
 t_GT      = r'>'
 t_LT      = r'<'
 t_NEQ     = r'!='
+
+t_PLUSEQUALS  = r'\+=' # <-- AÑADIDO
+t_MINUSEQUALS = r'-='  # <-- AÑADIDO
 
 
 def t_PYSCRIPT_OPEN(t):
